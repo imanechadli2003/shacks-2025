@@ -15,7 +15,6 @@ from ..camera.intruder import Intruder
 
 class SystemTray(QSystemTrayIcon):
     def __init__(self, app):
-        print(settings.get("security_mode"))
         icon_path = resource_path("assets/icon.png")
         super().__init__(QIcon(icon_path), parent=None)
         self.app = app
@@ -110,7 +109,6 @@ class SystemTray(QSystemTrayIcon):
             QSystemTrayIcon.Critical,
         )
         mode = settings.get("security_mode")
-        print(mode)
         asyncio.run(trigger_intrusion_alert(mode))
         
         print("[Intruder] Alerte envoyée.")
