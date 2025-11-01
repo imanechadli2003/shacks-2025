@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QFileDialog
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QFileDialog, QProgressDialog
 from PySide6.QtGui import QIcon, QPixmap, QImage
 from PySide6.QtCore import Qt, QTimer, Signal
 from ..camera.camera_capture import CameraCapture
@@ -20,6 +20,10 @@ class ReferenceWindow(QWidget):
         self.captured_images = []
         self.reference_dir = Path("captures/reference")
         self.reference_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Etat de fermeture et UI de chargement
+        self._closing_dialog = None
+        self.closing = False
         
         self.setStyleSheet("""
             QWidget {
@@ -335,8 +339,52 @@ class ReferenceWindow(QWidget):
         self.update_thumbnails()
 
     def closeEvent(self, event):
-        """Arrêter la caméra lors de la fermeture"""
-        self.timer.stop()
-        self.camera.release()
+        """Affiche un chargement et finalise la fermeture proprement"""
+        if self.closing:
+            # Fermeture déjà en cours: laisser Qt terminer
+            return super().closeEvent(event)
+        
+        # Intercepter la fermeture pour montrer un chargement
+        event.ignore()
+        self.show_closing_dialog()
+        # Finaliser en asynchrone pour laisser le dialog s'afficher
+        QTimer.singleShot(50, self._finalize_close)
+
+    def show_closing_dialog(self):
+        """Affiche un dialogue de progression (mode indéterminé)."""
+        if self._closing_dialog is None:
+            dlg = QProgressDialog("Fermeture en cours...", None, 0, 0, self)
+            dlg.setWindowTitle("Veuillez patienter")
+            dlg.setCancelButton(None)
+            dlg.setWindowModality(Qt.ApplicationModal)
+            dlg.setAutoClose(False)
+            dlg.setAutoReset(False)
+            dlg.setMinimumDuration(0)
+            self._closing_dialog = dlg
+            dlg.show()
+
+    def _finalize_close(self):
+        """Stoppe les tâches, libère la caméra puis ferme la fenêtre."""
+        try:
+            if hasattr(self, 'timer') and self.timer is not None:
+                self.timer.stop()
+        except Exception:
+            pass
+        try:
+            if hasattr(self, 'camera') and self.camera is not None:
+                self.camera.release()
+        except Exception:
+            pass
+        
+        # Notifier les autres composants
         self.window_closed.emit()
-        event.accept()
+
+        # Fermer le dialog
+        if self._closing_dialog is not None:
+            self._closing_dialog.close()
+            self._closing_dialog.deleteLater()
+            self._closing_dialog = None
+
+        # Marquer et fermer réellement
+        self.closing = True
+        self.close()
