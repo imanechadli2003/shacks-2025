@@ -25,16 +25,17 @@ class SystemTray(QSystemTrayIcon):
         self.show()
 
         self.windows = []
-
-        # Initialiser la caméra
         self.camera = CameraCapture()
-        
         self.intruder_detector = Intruder(path_reference="captures/reference/face.jpg")
 
-        # Timer pour exécuter la capture toutes les 5 secondes
+        # Compteur de détections consécutives
+        self.intruder_count = 0
+        self.threshold = 3  # marge de 3 détections
+
+        # Timer toutes les 3 secondes
         self.timer = QTimer()
         self.timer.timeout.connect(self.tache_periodique)
-        self.timer.start(3000)  # toutes les 3 secondes
+        self.timer.start(3000)
 
     def open_options(self):
         win = OptionsWindow()
@@ -48,14 +49,30 @@ class SystemTray(QSystemTrayIcon):
                 path_frame="captures/last_capture.jpg",
                 tolerance=0.6
             )
+
             if is_intruder_detected:
-                self.showMessage(
-                    "Alerte Intrusion",
-                    "Un intrus a été détecté !",
-                    QSystemTrayIcon.Critical
-                )
+                self.intruder_count += 1
+                print(f"[Intruder] Détection {self.intruder_count}/{self.threshold}")
+            else:
+                self.intruder_count = 0  # reset si visage légitime détecté
+                print("[Intruder] Visage reconnu, compteur réinitialisé.")
+
+            # Action seulement après 3 détections consécutives
+            if self.intruder_count >= self.threshold:
+                self.trigger_intrusion_alert()
+                self.intruder_count = 0  # reset après alerte
+
         except Exception as e:
             print(f"Erreur capture caméra : {e}")
+
+    def trigger_intrusion_alert(self):
+        """Action à exécuter après plusieurs détections."""
+        self.showMessage(
+            "Alerte Intrusion",
+            "Un intrus a été détecté à plusieurs reprises !",
+            QSystemTrayIcon.Critical
+        )
+        print("[Intruder] Alerte envoyée.")
 
     def quit_app(self):
         self.timer.stop()

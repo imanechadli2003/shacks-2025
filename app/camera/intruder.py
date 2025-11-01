@@ -18,7 +18,6 @@ class Intruder:
         Tolerance: seuil de tolérance pour la comparaison des visages.
         Retourne True si c’est un intrus (autre personne ou aucun visage reconnu).
         """
-        print("Vérification de l'intrus...")
         # Charger l'image capturée
         frame_image = cv2.imread(path_frame)
         if frame_image is None:
