@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QApplication
-from app.tray import SystemTray
+from app.tray.tray import SystemTray
 import sys
 
 def main():
