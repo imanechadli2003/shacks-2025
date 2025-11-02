@@ -193,13 +193,15 @@ class ReportsManager:
     
     def get_all_reports(self) -> List[Report]:
         """
-        Récupère la liste complète des rapports.
+        Récupère la liste complète des rapports, triés du plus récent au plus ancien.
         
         Returns:
-            Liste de tous les rapports sauvegardés
+            Liste de tous les rapports sauvegardés, ordonnés par date décroissante
         """
         reports_data = self._get_reports_data()
-        return [Report.from_dict(data) for data in reports_data]
+        # Trier par ID (contient le timestamp) en ordre décroissant
+        sorted_data = sorted(reports_data, key=lambda r: r.get("id", ""), reverse=True)
+        return [Report.from_dict(data) for data in sorted_data]
     
     def clear_all_reports(self):
         """Supprime tous les rapports (utile pour le nettoyage)."""

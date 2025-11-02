@@ -13,7 +13,7 @@ class ReferenceWindow(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Shacks 2025 - Images de référence")
+        self.setWindowTitle("Sneak Snap - Images de référence")
         self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
         self.resize(700, 600)
         

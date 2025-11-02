@@ -14,7 +14,7 @@ class IntrusionReportWindow(QWidget):
 	def __init__(self):
 		super().__init__()
   
-		self.setWindowTitle("Shacks 2025 - Rapports d'intrusion")
+		self.setWindowTitle("Sneak Snap - Rapports d'intrusion")
 		self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
 		self.resize(900, 650)
 

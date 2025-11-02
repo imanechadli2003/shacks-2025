@@ -18,7 +18,7 @@ class SystemTray(QSystemTrayIcon):
         icon_path = resource_path("assets/icon.png")
         super().__init__(QIcon(icon_path), parent=None)
         self.app = app
-        self.setToolTip("Shacks 2025 - Sécurité")
+        self.setToolTip("Sneak Snap")
 
         # --- Menu du tray ---
         menu = QMenu()

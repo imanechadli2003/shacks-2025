@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QFrame, QSpacerItem, QSizePolicy, QPushButton, QLineEdit, QScrollArea
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QFrame, QSpacerItem, QSizePolicy, QPushButton, QLineEdit, QScrollArea, QApplication
 from PySide6.QtGui import QIcon, QPixmap, QFont
 from PySide6.QtCore import Qt, Signal
 
@@ -20,7 +20,7 @@ class OptionsWindow(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Shacks 2025 - Options")
+        self.setWindowTitle("Sneak Snap - Options")
         self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
         self.resize(500, 400)
         
@@ -123,6 +123,20 @@ class OptionsWindow(QWidget):
                 border: 2px solid #014d28;
                 color: #014d28;
             }
+            QPushButton#closeButton {
+                border: 2px solid #c0392b;
+                color: #c0392b;
+            }
+            QPushButton#closeButton:hover {
+                background-color: #fdecea;
+                border: 2px solid #a93226;
+                color: #a93226;
+            }
+            QPushButton#closeButton:pressed {
+                background-color: #f5d7d4;
+                border: 2px solid #7b241c;
+                color: #7b241c;
+            }
         """)
 
         main_layout = QVBoxLayout()
@@ -140,12 +154,12 @@ class OptionsWindow(QWidget):
 
         title_layout = QVBoxLayout()
         title_layout.setSpacing(5)
-        
-        title_label = QLabel("Shacks 2025")
+
+        title_label = QLabel("Sneak Snap")
         title_label.setObjectName("title")
         title_layout.addWidget(title_label)
         
-        subtitle_label = QLabel("Système de sécurité intelligent")
+        subtitle_label = QLabel("Shacks 2025")
         subtitle_label.setObjectName("subtitle")
         title_layout.addWidget(subtitle_label)
         
@@ -284,6 +298,26 @@ class OptionsWindow(QWidget):
         reports_layout.addWidget(self.reports_button)
 
         main_layout.addLayout(reports_layout)
+        
+        # Section Fermer l'application
+        close_layout = QVBoxLayout()
+        close_layout.setSpacing(15)
+
+        close_label = QLabel("Fermer l'application")
+        close_label.setObjectName("section")
+        close_layout.addWidget(close_label)
+
+        close_desc = QLabel("Ferme complètement l'application (y compris l'icône dans la barre des tâches) :")
+        close_desc.setWordWrap(True)
+        close_desc.setStyleSheet("color: #7f8c8d; font-size: 12px; margin-bottom: 5px;")
+        close_layout.addWidget(close_desc)
+
+        self.close_button = QPushButton("Fermer l'application")
+        self.close_button.setObjectName("closeButton")
+        self.close_button.clicked.connect(self.on_close_application)
+        close_layout.addWidget(self.close_button)
+
+        main_layout.addLayout(close_layout)
         
         # Espaceur pour pousser le contenu vers le haut
         main_layout.addStretch()
@@ -429,4 +463,8 @@ class OptionsWindow(QWidget):
             except Exception:
                 # Ne pas bloquer l'UI si conversion échoue
                 pass
+    
+    def on_close_application(self):
+        """Ferme complètement l'application."""
+        QApplication.quit()
         

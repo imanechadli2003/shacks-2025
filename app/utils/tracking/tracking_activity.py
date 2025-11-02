@@ -27,6 +27,7 @@ def tracking(duration, output):
     _start_tracking_activity()
     stop_event.wait(duration)
     _stop_tracking_activity()
+    _take_screenshot()
     output["json_path"]=_save_log_to_json()
 
 def stop_tracking():
@@ -56,7 +57,7 @@ def _stop_tracking_activity():
 
 
 def _add_to_log(data_dict):
-    data_dict["timestamp"] = int(time.time()) - 14400  # Ajuster pour heure de New York (UTC-4)
+    data_dict["timestamp"] = time.time()
     _event_log.append(data_dict)
 
 def _get_active_window_title():
@@ -134,7 +135,8 @@ def _log_active_window():
 
 
 # screenshots
-def _screenshot_loop(output_dir = "screenshots", interval = 3):
+# screenshots
+def _screenshot_loop(output_dir = "screenshots", interval = 1):
     if not os.path.exists(_tracking_folder_path):
         os.makedirs(_tracking_folder_path)
     output_dir_path = f"{_tracking_folder_path}/{output_dir}"
@@ -155,7 +157,23 @@ def _screenshot_loop(output_dir = "screenshots", interval = 3):
             print (f"Erreur MSS: {e}")
         stop_event.wait(interval)
 
+def _take_screenshot(output_dir="screenshots"):
 
+    output_dir_path = f"{_tracking_folder_path}/{output_dir}"
+
+    # Nom de fichier simplifié, sans suffixe
+    file_name = f"{output_dir_path}/screenshot_{int(time.time())}.jpeg"
+    try:
+        with mss.mss() as sct:
+            sct.shot(output=file_name)
+            data = {
+                "type": "screenshot",
+                "file_path": file_name,
+                "window_title": _get_active_window_title()
+            }
+            _add_to_log(data)
+    except Exception as e:
+        print(f"Erreur MSS lors de la capture : {e}")
 
 
 # clipboard
@@ -184,7 +202,7 @@ def _log_clipboard():
 
 
 # new prossess
-def _new_process_loop(interval=5):
+def _new_process_loop(interval=1):
     global _known_pids 
     _known_pids = set(psutil.pids())
     while not stop_event.is_set():
@@ -212,6 +230,9 @@ def _log_new_process():
         _known_pids = cur_pids
     except Exception as e:
         print(f"Erreur PSUtil: {e}")
+
+
+
 
 
 def _save_log_to_json(output_dir = "intrusions", file_name="intrusion_log"):

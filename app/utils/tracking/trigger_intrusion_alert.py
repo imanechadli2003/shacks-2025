@@ -19,7 +19,7 @@ async def trigger_intrusion_alert(action_type: str):
         MESSAGE = "Un intrus est détecté. Nous avons procedé à la fermeture de l'ordinateur pour votre sécurité. VOICI UNE PHOTO DE L'INTRUS : "
         await envoyer_message(TOKEN_DISCORD, GUILD_ID, user_id, MESSAGE)
         await envoyer_photo(TOKEN_DISCORD, GUILD_ID, user_id, PATH_PHOTO_INTRUS)  # TODO
-        # close_computer()
+        close_computer()
         print("Ordinateur fermé.")  # Pour test uniquement, # TODO
 
 
