@@ -2,7 +2,7 @@
 
 Une application autonome (Executable) en Python pour l'enregistrement et la surveillance des interactions PC.
 
-## 🎯 À Propos du Projet
+## 📌 À Propos du Projet
 
 Sneak Snap est une application développée en Python et distribuée sous forme d'exécutable autonome. L'objectif est de fournir un outil prêt à l'emploi, ne nécessitant aucune installation de dépendances Python, pour enregistrer et gérer diverses interactions sur un ordinateur de manière discrète et efficace.
 
