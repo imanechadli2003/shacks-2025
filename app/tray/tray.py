@@ -50,7 +50,7 @@ class SystemTray(QSystemTrayIcon):
         # --- Timer principal ---
         self.timer = QTimer()
         self.timer.timeout.connect(self.tache_periodique)
-        self.timer.start(3000)
+        self.timer.start(1000)
 
     # ---------- FONCTIONS UTILITAIRES ----------
     def load_reference_images(self):
@@ -91,10 +91,15 @@ class SystemTray(QSystemTrayIcon):
             path_frame="captures/last_capture.jpg", tolerance=0.6
         )
 
-        if is_intruder:
+        # Si indéterminé, ne rien faire (ne pas modifier le compteur)
+        if is_intruder is None:
+            print("[Intruder] Résultat indéterminé, itération ignorée.")
+            return
+
+        if is_intruder is True:
             self.intruder_count += 1
             print(f"[Intruder] Détection {self.intruder_count}/{self.threshold}")
-        else:
+        elif is_intruder is False:
             self.intruder_count = 0
             print("[Intruder] Visage reconnu, compteur réinitialisé.")
 
@@ -103,11 +108,6 @@ class SystemTray(QSystemTrayIcon):
             self.intruder_count = 0
 
     def trigger_intrusion_alert(self):
-        self.showMessage(
-            "Alerte Intrusion",
-            "Un intrus a été détecté à plusieurs reprises !",
-            QSystemTrayIcon.Critical,
-        )
         mode = settings.get("security_mode")
         asyncio.run(trigger_intrusion_alert(mode))
         

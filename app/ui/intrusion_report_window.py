@@ -2,11 +2,13 @@ from PySide6.QtWidgets import (
 	QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame,
 	QGridLayout, QSizePolicy, QPushButton
 )
-from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtCore import Qt, QEvent
+from PySide6.QtGui import QIcon, QPixmap, QDesktopServices
+from PySide6.QtCore import Qt, QEvent, QUrl
 from pathlib import Path
 
 from app.utils.ressources import resource_path
+from app.utils.reports import reports_manager
+from datetime import datetime
 
 class IntrusionReportWindow(QWidget):
 	def __init__(self):
@@ -132,58 +134,55 @@ class IntrusionReportWindow(QWidget):
 		grid.setHorizontalSpacing(16)
 		grid.setVerticalSpacing(16)
 
-		# Charger les images de référence actuelles (si présentes)
-		self.reference_dir = Path("captures/reference")
-		self.reference_images = []
-		for i in range(1, 4):
-			path = self.reference_dir / f"reference_{i}.jpg"
-			if path.exists():
-				self.reference_images.append(str(path))
-
-		# Données fictives
-		items = self._fake_reports(12)
+		# Charger les rapports réels depuis le gestionnaire
+		reports = reports_manager.get_all_reports()
 
 		# Ajouter les cartes en grille (3 colonnes)
 		columns = 3
-		for idx, item in enumerate(items):
+		for idx, report in enumerate(reports):
 			row = idx // columns
 			col = idx % columns
-			card = self._create_card(item["name"], item["date"], self.reference_images)
+			card = self._create_card(report)
 			grid.addWidget(card, row, col)
 
-		print(f"[IntrusionReportWindow] cartes créées: {len(items)}, images de référence: {len(self.reference_images)}")
+		# Si aucun rapport, afficher un placeholder
+		if not reports:
+			placeholder = QLabel("Aucun rapport d'intrusion pour le moment")
+			placeholder.setAlignment(Qt.AlignCenter)
+			placeholder.setStyleSheet("color: #95a5a6; font-size: 14px;")
+			grid.addWidget(placeholder, 0, 0, 1, columns)
+
+		print(f"[IntrusionReportWindow] cartes créées: {len(reports)}")
 
 		scroll.setWidget(content)
 		main_layout.addWidget(scroll)
 
 		self.setLayout(main_layout)
 
-	def _fake_reports(self, n):
-		data = []
-		# Contenu fictif: noms et dates d'exemple
-		for i in range(1, n + 1):
-			data.append({
-				"name": f"Intrusion #{i}",
-				"date": f"01/11/2025 1{(i%10)}:{(i*7)%60:02d}",
-			})
-		return data
+	def _format_date_from_id(self, report_id: str) -> str:
+		"""Extrait le timestamp en ms de l'ID (report_{ms}) et le formate en jj/mm/aaaa HH:MM:SS."""
+		try:
+			ms = int(report_id.split("_")[1])
+			dt = datetime.fromtimestamp(ms / 1000)
+			return dt.strftime("%d/%m/%Y %H:%M:%S")
+		except Exception:
+			return report_id
 
-	def _create_card(self, name: str, date: str, image_paths: list[str]):
+	def _create_card(self, report):
 		card = QFrame()
 		card.setObjectName("card")
 		card_layout = QVBoxLayout(card)
 		card_layout.setContentsMargins(12, 12, 12, 12)
 		card_layout.setSpacing(10)
 
-		# Image de couverture: une seule image de référence, taille fixe
-		if image_paths:
+		# Image de couverture: utiliser l'image de l'intrus si disponible
+		if getattr(report, "intruder_image_path", None):
 			cover = QLabel()
 			cover.setObjectName("thumb")
 			cover.setAlignment(Qt.AlignCenter)
 			cover.setFixedSize(260, 195)  # Taille fixe pour éviter les boucles de resize
 			cover.setScaledContents(False)
-			
-			pix = QPixmap(image_paths[0])
+			pix = QPixmap(report.intruder_image_path)
 			if not pix.isNull():
 				# Redimensionner une seule fois à la taille fixe
 				scaled = pix.scaled(260, 195, Qt.KeepAspectRatio, Qt.SmoothTransformation)
@@ -191,17 +190,19 @@ class IntrusionReportWindow(QWidget):
 			else:
 				cover.setText("Image invalide")
 				cover.setStyleSheet("color: #95a5a6; font-size: 12px;")
-			card_layout.addWidget(cover)
+			card_layout.addWidget(cover, 0, Qt.AlignHCenter)
 		else:
-			placeholder = QLabel("Aucune image de référence")
+			placeholder = QLabel("Aucune image d'intrus")
 			placeholder.setAlignment(Qt.AlignCenter)
 			placeholder.setStyleSheet("color: #95a5a6; font-size: 12px;")
 			placeholder.setObjectName("thumb")
 			placeholder.setFixedSize(260, 195)
-			card_layout.addWidget(placeholder)
+			card_layout.addWidget(placeholder, 0, Qt.AlignHCenter)
 
-		# Infos (nom + date)
-		name_label = QLabel(name)
+		# Infos (titre + date)
+		title = f"Rapport {report.id}"
+		date = self._format_date_from_id(report.id)
+		name_label = QLabel(title)
 		name_label.setObjectName("cardTitle")
 		name_label.setStyleSheet("background-color: transparent;")
 		date_label = QLabel(date)
@@ -213,14 +214,52 @@ class IntrusionReportWindow(QWidget):
 
 		# Bouton pour afficher le rapport complet
 		btn = QPushButton("Afficher rapport complet")
-		btn.clicked.connect(lambda: self.on_show_full_report(name))
+		btn.clicked.connect(lambda: self.on_show_full_report(report))
 		card_layout.addWidget(btn)
+
+		# Bouton pour afficher la timeline détaillée (HTML)
+		btn_timeline = QPushButton("Afficher la timeline détaillée")
+		btn_timeline.clicked.connect(lambda: self.on_show_timeline(report))
+		# Optionnel: désactiver si pas de HTML connu
+		html_path = Path(getattr(report, "html_report_path", ""))
+		btn_timeline.setEnabled(html_path.exists())
+		if not html_path.exists():
+			btn_timeline.setToolTip("Aucun fichier de timeline trouvé pour ce rapport")
+		card_layout.addWidget(btn_timeline)
 
 		# Forcer la carte à s'étirer correctement
 		card.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
 		return card
 
-	def on_show_full_report(self, report_name: str):
-		"""Action temporaire pour afficher le rapport complet."""
-		print(f"[IntrusionReportWindow] Afficher rapport complet: {report_name}")
+	def on_show_full_report(self, report):
+		"""Ouvre le PDF du rapport si disponible, sinon le dossier du rapport."""
+		try:
+			pdf_path = Path(getattr(report, "pdf_path", ""))
+			if pdf_path.exists():
+				QDesktopServices.openUrl(QUrl.fromLocalFile(str(pdf_path)))
+				return
+			# fallback: ouvrir le dossier contenant
+			folder = Path(getattr(report, "json_summary_path", "")).parent
+			if folder.exists():
+				QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+			else:
+				print(f"[IntrusionReportWindow] Chemins introuvables pour le rapport {report.id}")
+		except Exception as e:
+			print(f"[IntrusionReportWindow] Erreur à l'ouverture du rapport {getattr(report, 'id', '')}: {e}")
+
+	def on_show_timeline(self, report):
+		"""Ouvre la timeline détaillée (rapport HTML) si disponible, sinon le dossier du rapport."""
+		try:
+			html_path = Path(getattr(report, "html_report_path", ""))
+			if html_path.exists():
+				QDesktopServices.openUrl(QUrl.fromLocalFile(str(html_path)))
+				return
+			# fallback: ouvrir le dossier contenant
+			folder = Path(getattr(report, "json_summary_path", "")).parent
+			if folder.exists():
+				QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
+			else:
+				print(f"[IntrusionReportWindow] Timeline introuvable pour le rapport {getattr(report, 'id', '')}")
+		except Exception as e:
+			print(f"[IntrusionReportWindow] Erreur à l'ouverture de la timeline {getattr(report, 'id', '')}: {e}")
 

@@ -1,21 +1,35 @@
 from typing import Optional, Dict, List, Any
 from .settings import settings
 import time
+import shutil
+import os
+from pathlib import Path
 
 class Report:
     """Représente un rapport d'intrusion."""
-    
-    def __init__(self, report_id: str, pdf_path: str, content: Dict[str, Any]):
+
+    def __init__(
+        self,
+        report_id: str,
+        pdf_path: str,
+        json_summary_path: str,
+        intruder_image_path: Optional[str] = None,
+        html_report_path: Optional[str] = None,
+    ):
         self.id = report_id
         self.pdf_path = pdf_path
-        self.content = content
-    
+        self.json_summary_path = json_summary_path
+        self.intruder_image_path = intruder_image_path
+        self.html_report_path = html_report_path
+
     def to_dict(self) -> Dict[str, Any]:
         """Convertit le rapport en dictionnaire pour la sérialisation."""
         return {
             "id": self.id,
             "pdf_path": self.pdf_path,
-            "content": self.content
+            "json_summary_path": self.json_summary_path,
+            "intruder_image_path": self.intruder_image_path,
+            "html_report_path": self.html_report_path,
         }
     
     @staticmethod
@@ -24,7 +38,9 @@ class Report:
         return Report(
             report_id=data["id"],
             pdf_path=data["pdf_path"],
-            content=data["content"]
+            json_summary_path=data["json_summary_path"],
+            intruder_image_path=data.get("intruder_image_path"),
+            html_report_path=data.get("html_report_path"),
         )
 
 
@@ -53,20 +69,71 @@ class ReportsManager:
         """Génère un ID unique pour un nouveau rapport."""
         timestamp = int(time.time() * 1000)  # milliseconds
         return f"report_{timestamp}"
-    
-    def add_report(self, pdf_path: str, content: Dict[str, Any]) -> Report:
+
+    def add_report(self, pdf_path: str, json_summary_path: str) -> Report:
         """
         Ajoute un nouveau rapport.
         
         Args:
             pdf_path: Chemin vers le fichier PDF du rapport
-            content: Contenu JSON du rapport (données structurées)
+            json_summary_path: Chemin vers le fichier JSON du rapport
         
         Returns:
             Le rapport créé avec son ID
         """
         report_id = self._generate_id()
-        report = Report(report_id, pdf_path, content)
+        # Structure de sortie: reports/{id}/report.pdf et reports/{id}/report.json
+        base_dir = Path("reports")
+        report_dir = base_dir / report_id
+        report_dir.mkdir(parents=True, exist_ok=True)
+
+        # Chemins cibles normalisés
+        new_pdf_path = report_dir / "report.pdf"
+        new_json_path = report_dir / "report.json"
+
+        # Copier les fichiers sources vers la nouvelle structure
+        shutil.copy2(pdf_path, new_pdf_path)
+        shutil.copy2(json_summary_path, new_json_path)
+
+        # Copier la dernière capture d'intrus si disponible
+        intruder_src = Path("captures") / "last_capture.jpg"
+        intruder_dst = report_dir / "intruder.jpg"
+        try:
+            if intruder_src.exists():
+                shutil.copy2(intruder_src, intruder_dst)
+                print(f"[ReportsManager] Image intrus copiée vers: {intruder_dst}")
+            else:
+                print(f"[ReportsManager] Avertissement: {intruder_src} introuvable, aucune image intrus copiée")
+        except Exception as e:
+            print(f"[ReportsManager] Erreur lors de la copie de l'image intrus: {e}")
+
+        # Déterminer le chemin de l'image d'intrus si elle a été copiée
+        intruder_image_path = str(intruder_dst) if intruder_dst.exists() else None
+
+        # Copier le fichier HTML de replay si disponible (rapport.html à la racine)
+        html_src = Path("rapport.html")
+        html_dst = report_dir / "rapport.html"
+        html_report_path: Optional[str] = None
+        try:
+            if html_src.exists():
+                shutil.copy2(html_src, html_dst)
+                # Adapter les chemins des screenshots pour un accès relatif depuis le dossier du rapport
+                try:
+                    content = html_dst.read_text(encoding="utf-8")
+                    content = content.replace("tracking/screenshots", "../../tracking/screenshots")
+                    html_dst.write_text(content, encoding="utf-8")
+                except Exception as e:
+                    print(f"[ReportsManager] Erreur lors de l'adaptation des chemins dans le HTML: {e}")
+
+                html_report_path = str(html_dst)
+                print(f"[ReportsManager] HTML du rapport copié vers: {html_dst} (chemins screenshots réécrits -> '../../tracking/screenshots')")
+            else:
+                print(f"[ReportsManager] Avertissement: {html_src} introuvable, aucun HTML copié")
+        except Exception as e:
+            print(f"[ReportsManager] Erreur lors de la copie du HTML du rapport: {e}")
+
+        # Créer le rapport avec les nouveaux chemins
+        report = Report(report_id, str(new_pdf_path), str(new_json_path), intruder_image_path, html_report_path)
         
         # Récupérer la liste actuelle
         reports_data = self._get_reports_data()
@@ -78,6 +145,8 @@ class ReportsManager:
         self._save_reports_data(reports_data)
         
         print(f"[ReportsManager] Rapport ajouté: {report_id}")
+        print(f"[ReportsManager] PDF copié vers: {new_pdf_path}")
+        print(f"[ReportsManager] JSON copié vers: {new_json_path}")
         return report
     
     def remove_report(self, report_id: str) -> bool:

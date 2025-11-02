@@ -1,6 +1,5 @@
 import cv2
 import face_recognition
-print(face_recognition.__file__)
 
 class Intruder:
     def __init__(self, reference_paths: list[str]):
@@ -38,7 +37,7 @@ class Intruder:
         face_encodings = face_recognition.face_encodings(rgb_frame)
         if not face_encodings:
             print("⚠️ Aucun visage détecté dans l'image capturée.")
-            return False  # pas de visage => pas considéré comme intrus
+            return None  # pas de visage => pas considéré comme intrus
 
         # Vérifie si au moins un visage correspond à une référence connue
         for encoding in face_encodings:

@@ -11,3 +11,4 @@ discord
 dotenv
 PySide6
 pytz
+text2num

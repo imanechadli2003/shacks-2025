@@ -1,5 +1,6 @@
 import discord
 import asyncio
+from typing import List
 
 async def envoyer_message_et_obtenir_reponse(token: str, guild_id: int, user_id: int, message_a_envoyer: str) -> str:
     """
@@ -92,3 +93,50 @@ async def envoyer_photo(token: str, guild_id: int, user_id: int, chemin_image: s
         await client.start(token)
     except Exception as e:
         print(f"Erreur lors de l'envoi de la photo: {e}")
+
+
+async def recuperer_usernames(token: str, guild_id: int) -> List[dict]:
+    """
+    Récupère la liste des utilisateurs HUMANS d'un serveur Discord, en excluant les bots.
+
+    Remarques:
+    - Nécessite l'intent Members activé côté bot (Developer Portal) et dans le code.
+    - Utilise la route HTTP fetch_members pour balayer tous les membres.
+    - Retourne une liste de dicts: {"id": int, "name": str} où name = member.name (username)
+    """
+    intents = discord.Intents.default()
+    intents.members = True  # Intent privilégié requis
+    client = discord.Client(intents=intents)
+
+    result = {"users": []}
+
+    @client.event
+    async def on_ready():
+        try:
+            guild = client.get_guild(guild_id)
+            if guild is None:
+                # Guild introuvable: fermer proprement
+                await client.close()
+                return
+
+            users: List[dict] = []
+            try:
+                # Méthode exhaustive via HTTP (asynchrone)
+                async for member in guild.fetch_members(limit=None):
+                    # member.name = username, member.display_name = pseudo/nickname
+                    if not getattr(member, "bot", False):
+                        users.append({"id": member.id, "name": member.name})
+            except Exception:
+                # Fallback: membres déjà en cache (peut être incomplet selon intents)
+                users = [
+                    {"id": m.id, "name": m.name}
+                    for m in guild.members
+                    if not getattr(m, "bot", False)
+                ]
+
+            result["users"] = users
+        finally:
+            await client.close()
+
+    await client.start(token)
+    return result["users"]
