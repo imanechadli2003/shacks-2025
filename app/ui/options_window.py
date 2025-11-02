@@ -4,6 +4,7 @@ from PySide6.QtCore import Qt, Signal
 
 from app.ui.intrusion_report_window import IntrusionReportWindow
 from app.utils.const import TOKEN_DISCORD, GUILD_ID
+from app.utils.ressources import resource_path
 from ..utils.settings import settings
 from .reference_window import ReferenceWindow
 from text_to_num import text2num
@@ -20,7 +21,7 @@ class OptionsWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Shacks 2025 - Options")
-        self.setWindowIcon(QIcon("assets/icon.png"))
+        self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
         self.resize(500, 400)
         
         self.reference_window = None
@@ -133,7 +134,7 @@ class OptionsWindow(QWidget):
         header_layout.setSpacing(15)
         
         icon_label = QLabel()
-        icon_label.setPixmap(QPixmap("assets/icon.png").scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        icon_label.setPixmap(QPixmap(resource_path("assets/icon.png")).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
         icon_label.setFixedSize(64, 64)
         header_layout.addWidget(icon_label)
 

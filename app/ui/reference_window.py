@@ -6,6 +6,7 @@ import cv2
 import os
 from pathlib import Path
 import shutil
+from app.utils.ressources import resource_path
 
 class ReferenceWindow(QWidget):
     window_closed = Signal()
@@ -13,7 +14,7 @@ class ReferenceWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Shacks 2025 - Images de référence")
-        self.setWindowIcon(QIcon("assets/icon.png"))
+        self.setWindowIcon(QIcon(resource_path("assets/icon.png")))
         self.resize(700, 600)
         
         self.camera = CameraCapture()

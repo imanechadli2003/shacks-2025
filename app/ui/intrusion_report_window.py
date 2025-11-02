@@ -91,7 +91,7 @@ class IntrusionReportWindow(QWidget):
 		header_layout.setSpacing(15)
 
 		icon_label = QLabel()
-		icon_label.setPixmap(QPixmap("assets/icon.png").scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+		icon_label.setPixmap(QPixmap(resource_path("assets/icon.png")).scaled(64, 64, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 		icon_label.setFixedSize(64, 64)
 		header_layout.addWidget(icon_label)
 
